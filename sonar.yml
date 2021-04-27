@@ -1,0 +1,111 @@
+#---
+#- hosts: ec2
+
+#  become: yes
+#  become_user: root
+
+#  vars_files:
+#  - vars.yml
+
+#  tasks:
+
+  - name: Create a new database with name "sonarqube"
+    postgresql_db:
+      login_user: postgres
+      name: sonarqube
+    become_user: postgres
+
+#  - name: Add the user 'johnd' with a specific uid and a primary group of 'admin'
+    #ansible.builtin.user:
+      #name: postgres
+      #0password: $6$2104$DkItTNOkadPo9zF8pphsw/iAWI4g5gBiwFXC.RBJ0nGGCu1poYAkzkcgw30HjVtjf1w1yuqOKP2KmSMwZmYbE.
+
+  - name: Connect to database, create user, and grant access to database
+    postgresql_user:
+      db: sonarqube
+      name: sonar
+      password: MTU#2021#PSQL
+    become_user: postgres
+
+  - name: Grant privs to user "sonar" and db "sonarqube"
+    postgresql_privs:
+      db: sonarqube
+      role: sonar
+      objs: ALL_IN_SCHEMA
+      privs: SELECT,INSERT,UPDATE,DELETE
+    become_user: postgres
+
+  - name: Ensure group "sonar" exists
+    ansible.builtin.group:
+      name: sonar
+      state: present
+
+  - name: Create user "sonar"
+    ansible.builtin.user:
+      name: sonar
+      groups: sonar
+      home: /opt/sonarqube
+
+  - name: Install additional packages
+    apt:
+      state: present
+      pkg:
+      - acl
+      - unzip
+
+  - name: Download and extract SonarQube
+    ansible.builtin.unarchive:
+      src: "{{ sonar_download }}"
+      dest: /opt/sonarqube
+      remote_src: yes
+      owner: sonar
+      group: sonar
+    no_log: true
+
+  - name: Move SonarQube files
+    shell: mv /opt/sonarqube/sonarqube-*/* /opt/sonarqube/ ; rm -rf /opt/sonarqube/sonarqube-*
+    no_log: true
+
+  - name: Set some kernel parameters
+    lineinfile:
+      dest: /etc/sysctl.conf
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+    with_items:
+      - { regexp: '^vm.max_map_count=.*', line: 'vm.max_map_count=262144' }
+      - { regexp: '^fs.file-max=.*', line: 'fs.file-max=65536' }
+      - { regexp: '^ulimit -n.*', line: 'ulimit -n 65536' }
+      - { regexp: '^ulimit -u.*', line: 'ulimit -u 4096' }
+    no_log: true
+
+  - name: Update sonar.properties
+    lineinfile:
+      dest: /opt/sonarqube/conf/sonar.properties
+      regexp: "{{ item.regexp }}"
+      line: "{{ item.line }}"
+    with_items:
+      - { regexp: '^\#?sonar\.jdbc\.username=', line: 'sonar.jdbc.username=sonar' }
+      - { regexp: '^\#?sonar\.jdbc\.password=', line: 'sonar.jdbc.password={{ sonar_db_pw }}' }
+      - { regexp: '^\#?sonar\.jdbc\.url=jdbc\:postgresql\:.*', line: 'sonar.jdbc.url=jdbc:postgresql://localhost/sonarqube' }
+    no_log: true
+
+  - name: Copy file "sonar/sonarqube.service"
+    ansible.builtin.copy:
+      src: ~/.ansible/staging/files/sonar/sonarqube.service
+      dest: /etc/systemd/system/sonarqube.service
+      directory_mode: no
+      owner: root
+      group: root
+      mode: '0644'
+
+  - name: Enable and start SonarQube service
+    ansible.builtin.systemd:
+      name: sonarqube
+      enabled: yes
+      state: started
+      masked: no
+
+  - name: Reboot system
+    reboot:
+      reboot_timeout: 180
+

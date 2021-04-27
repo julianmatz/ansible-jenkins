@@ -1,0 +1,69 @@
+- name: Copy Apache site files
+  ansible.builtin.copy:
+    src: ~/.ansible/staging/files/apache/sites/
+    dest: /etc/apache2/sites-available/
+    directory_mode: yes
+    owner: root
+    group: root
+    mode: '0644'
+
+- name: Recursively remove directory
+  ansible.builtin.file:
+    path: /etc/apache2/sites-enabled/
+    state: absent
+
+- name: Recreate sites-enabled directory
+  ansible.builtin.file:
+    path: /etc/apache2/sites-enabled/
+    state: directory
+    owner: root
+    group: root
+    mode: '0755'
+
+- name: Enable required Apache sites
+  ansible.builtin.file:
+    src: '../sites-available/{{ item.name }}'
+    dest: '/etc/apache2/sites-enabled/{{ item.name }}'
+    state: link
+  loop:
+    - { name: jenkins.conf }
+    - { name: sonar.conf }
+    - { name: java.conf }
+    - { name: jenkins-le-ssl.conf }
+    - { name: sonar-le-ssl.conf }
+#    - { name: java-le-ssl.conf }
+  ignore_errors: yes
+
+- name: Refresh snap core
+  shell: snap install core; snap refresh core
+  no_log: true
+
+- name: Install certbot
+  shell: snap install --classic certbot
+  no_log: true
+
+- name: Create certbot symlink
+  file:
+    src: "/snap/bin/certbot"
+    dest: "/usr/bin/certbot"
+    state: link
+
+- name: Ensure that /etc/letsencrypt directory exists
+  ansible.builtin.file:
+    path: /etc/letsencrypt/
+    state: directory
+
+- name: Extract LetsEncrypt files
+  ansible.builtin.unarchive:
+    src: files/letsencrypt.tar.gz
+    dest: /etc/letsencrypt/
+    remote_src: no
+
+- name: Request and install SSL certificates
+  shell: certbot renew --non-interactive
+  #shell: certbot --apache --non-interactive --agree-tos -m admin@netlink.ie --cert-name n-dns.net -d jenkins.devops.n-dns.net,sonar.devops.n-dns.net,appserver.devops.n-dns.net --renew
+
+- name: Reload Apache
+  ansible.builtin.service:
+    name: apache2
+    state: reloaded

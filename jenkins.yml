@@ -1,0 +1,77 @@
+- name: Add Jenkins apt key
+  ansible.builtin.apt_key:
+    url: https://pkg.jenkins.io/debian-stable/jenkins.io.key
+    state: present
+
+- name: Add Jenkins repo
+  ansible.builtin.apt_repository:
+    repo: deb http://pkg.jenkins.io/debian-stable binary/
+    state: present
+    filename: jenkins
+
+#- synchronize:
+#    src: files/jenkins/jenkins.tar.gz
+#    dest: /root/
+#    poll: 5
+
+- name: Install Jenkins
+  apt:
+    name: jenkins
+    update_cache: yes
+    state: latest
+
+- name: Stop Jenkins
+  ansible.builtin.service:
+    name: jenkins
+    state: stopped
+  no_log: true
+
+- name: Wait for Jenkins to be stopped
+#  service_facts:
+#  register: result
+#  until: result.ansible_facts.services['jenkins'].state == 'stopped'
+#  retries: 10
+#  delay: 4
+  pause:
+    seconds: 20
+
+- name: Configure Jenkins defaults
+  lineinfile:
+    dest: /etc/default/jenkins
+    regexp: "{{ item.regexp }}"
+    line: "{{ item.line }}"
+  with_items:
+    - { regexp: '^JENKINS_HOME=.*', line: 'JENKINS_HOME=/home/$NAME' }
+  #no_log: true
+
+
+#- name: Create Jenkins home
+#  ansible.builtin.file:
+#    path: /home/jenkins/
+#    state: directory
+#    mode: '0755'
+#    owner: jenkins
+#    group: jenkins
+
+- name: Ensure group "docker" exists
+  ansible.builtin.group:
+    name: docker
+    state: present
+
+- name: Change Jenkins home
+  ansible.builtin.user:
+    name: jenkins
+    groups: jenkins,docker
+    home: /home/jenkins/
+    create_home: yes
+
+- name: Upload and extract Jenkins files
+  ansible.builtin.unarchive:
+    src: files/jenkins/jenkins.tar.gz
+    dest: /home/jenkins/
+    remote_src: no
+
+- name: Restart Jenkins
+  ansible.builtin.service:
+    name: jenkins
+    state: restarted

@@ -1,0 +1,57 @@
+
+    - name: Update all packages to their latest version
+      apt:
+        name: "*"
+        state: latest
+      no_log: true
+      #async: 180
+      #poll: 0
+
+    - name: Install Apache
+      apt: name=apache2 update_cache=yes state=latest
+      no_log: true
+
+    - name: Enable Apache modules
+      apache2_module: name={{ item }} state=present
+      with_items:
+        - rewrite
+        - proxy
+        - proxy_http
+        - headers
+        - ssl
+
+    - name: Install Java
+      apt:
+        state: present
+        pkg:
+          - default-jre
+          - default-jdk
+      no_log: true
+
+    - name: Install additional packages
+      apt:
+        state: present
+        pkg:
+        - acl
+        - unzip
+        - python3-psycopg2
+
+    - name: Install PostgreSQL
+      apt: name=postgresql update_cache=yes state=latest
+      no_log: true
+
+    - name: Enable PostgreSQL service
+      ansible.builtin.systemd:
+        name: postgresql
+        enabled: yes
+        masked: no
+      no_log: true
+
+    - name: Configure Jenkins
+      include: jenkins.yml
+
+    - name: Configure Apache
+      include: apache.yml
+
+    - name: Configure SonarQube
+      include: sonar.yml
