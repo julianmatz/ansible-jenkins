@@ -15,16 +15,11 @@
       name: sonarqube
     become_user: postgres
 
-#  - name: Add the user 'johnd' with a specific uid and a primary group of 'admin'
-    #ansible.builtin.user:
-      #name: postgres
-      #0password: $6$2104$DkItTNOkadPo9zF8pphsw/iAWI4g5gBiwFXC.RBJ0nGGCu1poYAkzkcgw30HjVtjf1w1yuqOKP2KmSMwZmYbE.
-
   - name: Connect to database, create user, and grant access to database
     postgresql_user:
       db: sonarqube
       name: sonar
-      password: MTU#2021#PSQL
+      password: "{{ sonar_db_pw }}"
     become_user: postgres
 
   - name: Grant privs to user "sonar" and db "sonarqube"
