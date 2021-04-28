@@ -1,0 +1,54 @@
+#---
+#- hosts: ec2
+
+#  become: yes
+#  become_user: root
+
+#  vars_files:
+#  - vars.yml
+
+#  tasks:
+
+  - name: Copy database dump to remote
+    ansible.builtin.copy:
+      src: files/sonar/sonarqube.sql
+      dest: /var/lib/postgresql/
+      owner: postgres
+      group: postgres
+
+  - name: Create a new database with name "sonarqube"
+    postgresql_db:
+      login_user: postgres
+      name: sonarqube
+      state: present
+    become_user: postgres
+
+  - name: Connect to database, create user, and grant access to database
+    postgresql_user:
+      db: sonarqube
+      name: sonar
+      password: "{{ sonar_db_pw }}"
+    become_user: postgres
+
+  - name: Restore sonarqube database
+    postgresql_db:
+      login_user: postgres
+      name: sonarqube
+      state: restore
+      target: /var/lib/postgresql/sonarqube.sql
+    become_user: postgres
+
+  #- name: Connect to database, create user, and grant access to database
+    #postgresql_user:
+      #db: sonarqube
+      #name: sonar
+      #password: "{{ sonar_db_pw }}"
+    #become_user: postgres
+
+  - name: Grant privs to user "sonar" and db "sonarqube"
+    postgresql_privs:
+      db: sonarqube
+      role: sonar
+      objs: ALL_IN_SCHEMA
+      privs: SELECT,INSERT,UPDATE,DELETE
+    become_user: postgres

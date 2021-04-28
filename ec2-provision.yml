@@ -44,7 +44,7 @@
 
     - name: Pause for EC2 instance to complete provisioning
       pause:
-        minutes: 1
+        seconds: 30
 
     - name: Add EC2 hosts key to known_hosts file
       shell: "ssh-keyscan -H {{ result.instances.0.public_ip }}  >> ~/.ssh/known_hosts"
