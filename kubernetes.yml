@@ -1,14 +1,3 @@
-- name: Add Google Cloud public signing key
-  ansible.builtin.apt_key:
-    url: https://packages.cloud.google.com/apt/doc/apt-key.gpg
-    state: present
-
-- name: Add Kubernetes repo
-  ansible.builtin.apt_repository:
-    repo: https://apt.kubernetes.io/ kubernetes-xenial main
-    state: present
-    filename: kubernetes
-
-- name: Install Apache
-  apt: name=kubectl update_cache=yes state=latest
+- name: Install kubectl snap
+  shell: snap install --classic kubectl
   no_log: true
