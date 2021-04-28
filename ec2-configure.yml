@@ -7,19 +7,6 @@
       #async: 180
       #poll: 0
 
-    - name: Install Apache
-      apt: name=apache2 update_cache=yes state=latest
-      no_log: true
-
-    - name: Enable Apache modules
-      apache2_module: name={{ item }} state=present
-      with_items:
-        - rewrite
-        - proxy
-        - proxy_http
-        - headers
-        - ssl
-
     - name: Install Java
       apt:
         state: present
@@ -36,17 +23,6 @@
         - unzip
         - python3-psycopg2
         - docker.io
-
-    - name: Install PostgreSQL
-      apt: name=postgresql update_cache=yes state=latest
-      no_log: true
-
-    - name: Enable PostgreSQL service
-      ansible.builtin.systemd:
-        name: postgresql
-        enabled: yes
-        masked: no
-      no_log: true
 
     - name: Configure Jenkins
       include: jenkins.yml

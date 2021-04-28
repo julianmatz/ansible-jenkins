@@ -9,6 +9,17 @@
 
 #  tasks:
 
+  - name: Install PostgreSQL
+    apt: name=postgresql update_cache=yes state=latest
+    no_log: true
+
+  - name: Enable PostgreSQL service
+    ansible.builtin.systemd:
+      name: postgresql
+      enabled: yes
+      masked: no
+    no_log: true
+
   - name: Copy database dump to remote
     ansible.builtin.copy:
       src: files/sonar/sonarqube.sql

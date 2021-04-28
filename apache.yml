@@ -1,3 +1,16 @@
+- name: Install Apache
+  apt: name=apache2 update_cache=yes state=latest
+  no_log: true
+
+- name: Enable Apache modules
+  apache2_module: name={{ item }} state=present
+  with_items:
+    - rewrite
+    - proxy
+    - proxy_http
+    - headers
+    - ssl
+
 - name: Copy Apache site files
   ansible.builtin.copy:
     src: ~/.ansible/staging/files/apache/sites/
