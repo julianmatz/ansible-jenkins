@@ -13,6 +13,8 @@
     postgresql_db:
       login_user: postgres
       name: sonarqube
+      state: restore
+      target: files/sonar/sonarqube.psql
     become_user: postgres
 
   - name: Connect to database, create user, and grant access to database
