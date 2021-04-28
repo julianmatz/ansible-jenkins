@@ -35,6 +35,8 @@
         - acl
         - unzip
         - python3-psycopg2
+        - docker.io
+        - kubectl
 
     - name: Install PostgreSQL
       apt: name=postgresql update_cache=yes state=latest
