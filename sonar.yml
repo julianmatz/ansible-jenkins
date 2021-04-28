@@ -9,12 +9,19 @@
 
 #  tasks:
 
+  - name: Copy database dump to remote
+    ansible.builtin.copy:
+      src: files/sonar/sonarqube.psql
+      dest: /var/lib/postgresql/
+      owner: postgres
+      group: postgres
+
   - name: Create a new database with name "sonarqube"
     postgresql_db:
       login_user: postgres
       name: sonarqube
       state: restore
-      target: files/sonar/sonarqube.psql
+      target: /var/lib/postgresql/sonarqube.psql
     become_user: postgres
 
   - name: Connect to database, create user, and grant access to database
