@@ -36,7 +36,6 @@
         - unzip
         - python3-psycopg2
         - docker.io
-        - kubectl
 
     - name: Install PostgreSQL
       apt: name=postgresql update_cache=yes state=latest
@@ -51,6 +50,9 @@
 
     - name: Configure Jenkins
       include: jenkins.yml
+
+    - name: Install Kubernetes
+      include: kubernetes.yml
 
     - name: Configure Apache
       include: apache.yml
